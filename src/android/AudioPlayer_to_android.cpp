@@ -461,6 +461,9 @@ SLresult audioPlayer_setStreamType(CAudioPlayer* ap, SLint32 type) {
     case SL_ANDROID_STREAM_NOTIFICATION:
         newStreamType = AUDIO_STREAM_NOTIFICATION;
         break;
+    case SL_ANDROID_STREAM_SYSTEM_ENFORCED:
+        newStreamType = AUDIO_STREAM_ENFORCED_AUDIBLE;
+        break;
     default:
         SL_LOGE(ERROR_PLAYERSTREAMTYPE_SET_UNKNOWN_TYPE);
         result = SL_RESULT_PARAMETER_INVALID;
