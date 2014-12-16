@@ -93,7 +93,6 @@ LOCAL_SRC_FILES:=                     \
         android/android_AudioToCbRenderer.cpp \
         android/android_GenericMediaPlayer.cpp\
         android/android_GenericPlayer.cpp     \
-        android/android_LocAVPlayer.cpp       \
         android/android_StreamPlayer.cpp      \
         android/android_Effect.cpp            \
         android/util/AacAdtsExtractor.cpp     \
@@ -185,7 +184,6 @@ LOCAL_SHARED_LIBRARIES :=         \
         libbinder                 \
         libstagefright            \
         libstagefright_foundation \
-        libstagefright_http_support \
         libcutils                 \
         libgui                    \
         libdl                     \
