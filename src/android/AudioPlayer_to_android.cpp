@@ -18,7 +18,6 @@
 #include "android_prompts.h"
 #include "android/android_AudioToCbRenderer.h"
 #include "android/android_StreamPlayer.h"
-#include "android/android_LocAVPlayer.h"
 #include "android/include/AacBqToPcmCbRenderer.h"
 
 #include <fcntl.h>
@@ -460,6 +459,9 @@ SLresult audioPlayer_setStreamType(CAudioPlayer* ap, SLint32 type) {
         break;
     case SL_ANDROID_STREAM_NOTIFICATION:
         newStreamType = AUDIO_STREAM_NOTIFICATION;
+        break;
+    case SL_ANDROID_STREAM_SYSTEM_ENFORCED:
+        newStreamType = AUDIO_STREAM_ENFORCED_AUDIBLE;
         break;
     default:
         SL_LOGE(ERROR_PLAYERSTREAMTYPE_SET_UNKNOWN_TYPE);
@@ -1546,67 +1548,6 @@ SLresult android_audioPlayer_realize(CAudioPlayer *pAudioPlayer, SLboolean async
 
         // This use case does not have a separate "prepare" step
         pAudioPlayer->mAndroidObjState = ANDROID_READY;
-        }
-        break;
-
-    //-----------------------------------
-    // MediaPlayer
-    case AUDIOPLAYER_FROM_URIFD: {
-        pAudioPlayer->mAPlayer = new android::LocAVPlayer(&app, false /*hasVideo*/);
-        pAudioPlayer->mAPlayer->init(sfplayer_handlePrefetchEvent,
-                        (void*)pAudioPlayer /*notifUSer*/);
-
-        switch (pAudioPlayer->mDataSource.mLocator.mLocatorType) {
-            case SL_DATALOCATOR_URI: {
-                // The legacy implementation ran Stagefright within the application process, and
-                // so allowed local pathnames specified by URI that were openable by
-                // the application but were not openable by mediaserver.
-                // The current implementation runs Stagefright (mostly) within mediaserver,
-                // which runs as a different UID and likely a different current working directory.
-                // For backwards compatibility with any applications which may have relied on the
-                // previous behavior, we convert an openable file URI into an FD.
-                // Note that unlike SL_DATALOCATOR_ANDROIDFD, this FD is owned by us
-                // and so we close it as soon as we've passed it (via Binder dup) to mediaserver.
-                const char *uri = (const char *)pAudioPlayer->mDataSource.mLocator.mURI.URI;
-                if (!isDistantProtocol(uri)) {
-                    // don't touch the original uri, we may need it later
-                    const char *pathname = uri;
-                    // skip over an optional leading file:// prefix
-                    if (!strncasecmp(pathname, "file://", 7)) {
-                        pathname += 7;
-                    }
-                    // attempt to open it as a file using the application's credentials
-                    int fd = ::open(pathname, O_RDONLY);
-                    if (fd >= 0) {
-                        // if open is successful, then check to see if it's a regular file
-                        struct stat statbuf;
-                        if (!::fstat(fd, &statbuf) && S_ISREG(statbuf.st_mode)) {
-                            // treat similarly to an FD data locator, but
-                            // let setDataSource take responsibility for closing fd
-                            pAudioPlayer->mAPlayer->setDataSource(fd, 0, statbuf.st_size, true);
-                            break;
-                        }
-                        // we were able to open it, but it's not a file, so let mediaserver try
-                        (void) ::close(fd);
-                    }
-                }
-                // if either the URI didn't look like a file, or open failed, or not a file
-                pAudioPlayer->mAPlayer->setDataSource(uri);
-                } break;
-            case SL_DATALOCATOR_ANDROIDFD: {
-                int64_t offset = (int64_t)pAudioPlayer->mDataSource.mLocator.mFD.offset;
-                pAudioPlayer->mAPlayer->setDataSource(
-                        (int)pAudioPlayer->mDataSource.mLocator.mFD.fd,
-                        offset == SL_DATALOCATOR_ANDROIDFD_USE_FILE_SIZE ?
-                                (int64_t)PLAYER_FD_FIND_FILE_SIZE : offset,
-                        (int64_t)pAudioPlayer->mDataSource.mLocator.mFD.length);
-                }
-                break;
-            default:
-                SL_LOGE(ERROR_PLAYERREALIZE_UNKNOWN_DATASOURCE_LOCATOR);
-                break;
-        }
-
         }
         break;
 
