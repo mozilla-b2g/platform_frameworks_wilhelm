@@ -22,7 +22,6 @@
 #include "android_prompts.h"
 // LocAVPlayer and StreamPlayer derive from GenericMediaPlayer,
 //    so no need to #include "android_GenericMediaPlayer.h"
-#include "android_LocAVPlayer.h"
 #include "android_StreamPlayer.h"
 
 //-----------------------------------------------------------------------------
@@ -422,30 +421,6 @@ XAresult android_Player_realize(CMediaPlayer *mp, SLboolean async) {
         mp->mAVPlayer = new android::StreamPlayer(&ap_params, true /*hasVideo*/,
                 &mp->mAndroidBufferQueue, mp->mCallbackProtector);
         mp->mAVPlayer->init(player_handleMediaPlayerEventNotifications, (void*)mp);
-        }
-        break;
-    case AUDIOVIDEOPLAYER_FROM_URIFD: {
-        mp->mAVPlayer = new android::LocAVPlayer(&ap_params, true /*hasVideo*/);
-        mp->mAVPlayer->init(player_handleMediaPlayerEventNotifications, (void*)mp);
-        switch (mp->mDataSource.mLocator.mLocatorType) {
-        case XA_DATALOCATOR_URI:
-            ((android::LocAVPlayer*)mp->mAVPlayer.get())->setDataSource(
-                    (const char*)mp->mDataSource.mLocator.mURI.URI);
-            break;
-        case XA_DATALOCATOR_ANDROIDFD: {
-            int64_t offset = (int64_t)mp->mDataSource.mLocator.mFD.offset;
-            ((android::LocAVPlayer*)mp->mAVPlayer.get())->setDataSource(
-                    (int)mp->mDataSource.mLocator.mFD.fd,
-                    offset == SL_DATALOCATOR_ANDROIDFD_USE_FILE_SIZE ?
-                            (int64_t)PLAYER_FD_FIND_FILE_SIZE : offset,
-                    (int64_t)mp->mDataSource.mLocator.mFD.length);
-            }
-            break;
-        default:
-            SL_LOGE("Invalid or unsupported data locator type %u for data source",
-                    mp->mDataSource.mLocator.mLocatorType);
-            result = XA_RESULT_PARAMETER_INVALID;
-        }
         }
         break;
     case INVALID_TYPE: // intended fall-through
